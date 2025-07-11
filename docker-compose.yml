@@ -1,0 +1,62 @@
+# A linha 'version' é obsoleta e pode ser removida, mas mantida conforme solicitado.
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados (PostgreSQL)
+  opal-postgres:
+    image: postgres:14-alpine
+    container_name: opal_postgres_db
+    environment:
+      # Defina um usuário e senha para o seu banco de dados
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_USER}
+    ports:
+      # Expor a porta do Postgres no host (opcional, bom para depuração)
+      - "5432:5432"
+    volumes:
+      # Este volume garante que seus dados do banco de dados persistam
+      # mesmo se o contêiner for recriado.
+      - opal_postgres_data:/var/lib/postgresql/data
+    networks:
+      - opal_network_poc
+
+  # Serviço do Redis (para broadcast em tempo real)
+  opal-redis:
+    image: redis:6.2-alpine
+    container_name: opal_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - opal_network_poc
+
+  # Serviço do OPAL Server (modificado)
+  opal-server:
+    image: permitio/opal-server:latest
+    container_name: opal_server
+    depends_on:
+      # O servidor OPAL agora depende tanto do Redis quanto do Postgres
+      - opal-redis
+      - opal-postgres
+    ports:
+      - "7002:7002"
+    environment:
+      # Variável de ambiente ADICIONADA para conectar ao banco de dados
+      - OPAL_DB_URL=postgresql+asyncpg://opal:opal@opal-postgres:5432/opal
+      
+      # Variáveis de ambiente existentes
+      - OPAL_BROADCAST_URI=redis://opal-redis:6379/0
+      - OPAL_SERVER_API_KEY=${OPAL_TOKEN}
+      - OPAL_SERVER_WORKER_TOKEN_PRIVATE_KEY=${OPAL_PRIVATE_KEY}
+      - OPAL_SERVER_WORKER_TOKEN_PUBLIC_KEY=${OPAL_PUBLIC_KEY}
+    networks:
+      - opal_network_poc
+
+# Definição das redes e volumes
+networks:
+  opal_network_poc:
+    driver: bridge
+    name: opal_network_poc
+
+volumes:
+  opal_postgres_data:
+    driver: local
