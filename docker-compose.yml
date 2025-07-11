@@ -70,9 +70,9 @@ services:
       - OPAL_DB_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
       
       # Autenticação
-      - OPAL_SERVER_API_KEY=${OPAL_TOKEN}
-      - OPAL_AUTH_PRIVATE_KEY=${OPAL_PRIVATE_KEY}
-      - OPAL_AUTH_PUBLIC_KEY=${OPAL_PUBLIC_KEY}
+      - OPAL_AUTH_PRIVATE_KEY=${OPAL_AUTH_PRIVATE_KEY}
+      - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
+      - OPAL_AUTH_MASTER_TOKEN=${OPAL_AUTH_MASTER_TOKEN}
       
       # Logging
       - OPAL_LOG_LEVEL=INFO
