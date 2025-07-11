@@ -1,26 +1,45 @@
-# A linha 'version' é obsoleta e pode ser removida, mas mantida conforme solicitado.
+# docker-compose.yml - VERSÃO CORRIGIDA
 version: '3.8'
 
 services:
-  # Serviço do Banco de Dados (PostgreSQL)
+  # --- GITEA ---
+  gitea:
+    image: gitea/gitea:latest
+    container_name: local_gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=opal-postgres
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=${POSTGRES_USER}
+      - GITEA__database__PASSWD=${POSTGRES_PASSWORD}
+    networks:
+      - opal_network_poc
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    volumes:
+      - gitea_data:/data
+    depends_on:
+      - opal-postgres
+
+  # --- POSTGRESQL ---
   opal-postgres:
     image: postgres:14-alpine
     container_name: opal_postgres_db
     environment:
-      # Defina um usuário e senha para o seu banco de dados
       - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      # Expor a porta do Postgres no host (opcional, bom para depuração)
       - "5432:5432"
     volumes:
-      # Este volume garante que seus dados do banco de dados persistam
-      # mesmo se o contêiner for recriado.
       - opal_postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
     networks:
       - opal_network_poc
 
-  # Serviço do Redis (para broadcast em tempo real)
+  # --- REDIS ---
   opal-redis:
     image: redis:6.2-alpine
     container_name: opal_redis
@@ -29,29 +48,38 @@ services:
     networks:
       - opal_network_poc
 
-  # Serviço do OPAL Server (modificado)
+  # --- OPAL SERVER (CONFIGURAÇÃO CORRIGIDA) ---
   opal-server:
     image: permitio/opal-server:latest
     container_name: opal_server
     depends_on:
-      # O servidor OPAL agora depende tanto do Redis quanto do Postgres
       - opal-redis
       - opal-postgres
+      - gitea
     ports:
       - "7002:7002"
     environment:
-      # Variável de ambiente ADICIONADA para conectar ao banco de dados
-      - OPAL_DB_URL=postgresql+asyncpg://opal:opal@opal-postgres:5432/opal
+      # ✅ CORREÇÃO: Habilitar scopes
+      - OPAL_SCOPES=1
       
-      # Variáveis de ambiente existentes
+      # ✅ CORREÇÃO: URL correta do Redis (nome do serviço)
       - OPAL_BROADCAST_URI=redis://opal-redis:6379/0
+      - OPAL_REDIS_URL=redis://opal-redis:6379/0
+      
+      # Banco de dados
+      - OPAL_DB_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
+      
+      # Autenticação
       - OPAL_SERVER_API_KEY=${OPAL_TOKEN}
       - OPAL_SERVER_WORKER_TOKEN_PRIVATE_KEY=${OPAL_PRIVATE_KEY}
       - OPAL_SERVER_WORKER_TOKEN_PUBLIC_KEY=${OPAL_PUBLIC_KEY}
+      
+      # Logging
+      - OPAL_LOG_LEVEL=INFO
     networks:
       - opal_network_poc
+    restart: unless-stopped
 
-# Definição das redes e volumes
 networks:
   opal_network_poc:
     driver: bridge
@@ -59,4 +87,6 @@ networks:
 
 volumes:
   opal_postgres_data:
+    driver: local
+  gitea_data:
     driver: local
