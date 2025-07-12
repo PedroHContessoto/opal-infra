@@ -74,6 +74,7 @@ services:
       - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
       - OPAL_AUTH_MASTER_TOKEN=${OPAL_AUTH_MASTER_TOKEN}
       
+      
       # Logging
       - OPAL_LOG_LEVEL=INFO
     networks:
