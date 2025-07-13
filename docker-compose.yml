@@ -89,7 +89,7 @@ services:
       - OPAL_AUTH_PRIVATE_KEY=${OPAL_AUTH_PRIVATE_KEY}
       - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
       - OPAL_AUTH_MASTER_TOKEN=${OPAL_AUTH_MASTER_TOKEN}
-      - OPAL_LOG_LEVEL=INFO
+      - OPAL_LOG_LEVEL=DEBUG
     networks:
       - opal_network_poc
     restart: unless-stopped
