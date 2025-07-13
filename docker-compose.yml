@@ -1,5 +1,6 @@
 # docker-compose.yml - VERSÃO CORRIGIDA
-version: '3.8'
+# Removida a linha 'version' que é obsoleta
+# version: '3.8'
 
 services:
   # --- GITEA ---
@@ -23,6 +24,13 @@ services:
       - gitea_data:/data
     depends_on:
       - opal-postgres
+    # ✅ ADICIONADO: Healthcheck para garantir que o Gitea esteja pronto antes do OPAL Server tentar usá-lo.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # --- POSTGRESQL ---
   opal-postgres:
@@ -38,6 +46,12 @@ services:
       - ./postgres-init:/docker-entrypoint-initdb.d
     networks:
       - opal_network_poc
+    # Adicionado um healthcheck simples para o postgres também, por boa prática.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d gitea"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # --- REDIS ---
   opal-redis:
@@ -47,35 +61,34 @@ services:
       - "6379:6379"
     networks:
       - opal_network_poc
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # --- OPAL SERVER (CONFIGURAÇÃO CORRIGIDA) ---
+  # --- OPAL SERVER (CONFIGURAÇÃO CORRIGIDA ) ---
   opal-server:
     image: permitio/opal-server:latest
     container_name: opal_server
+    # ✅ MODIFICADO: depends_on agora usa condições para esperar os serviços ficarem saudáveis.
     depends_on:
-      - opal-redis
-      - opal-postgres
-      - gitea
+      opal-redis:
+        condition: service_healthy
+      opal-postgres:
+        condition: service_healthy
+      gitea:
+        condition: service_healthy
     ports:
       - "7002:7002"
     environment:
-      # ✅ CORREÇÃO: Habilitar scopes
       - OPAL_SCOPES=1
-      
-      # ✅ CORREÇÃO: URL correta do Redis (nome do serviço)
       - OPAL_BROADCAST_URI=redis://opal-redis:6379/0
       - OPAL_REDIS_URL=redis://opal-redis:6379/0
-      
-      # Banco de dados
       - OPAL_DB_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
-      
-      # Autenticação
       - OPAL_AUTH_PRIVATE_KEY=${OPAL_AUTH_PRIVATE_KEY}
       - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
       - OPAL_AUTH_MASTER_TOKEN=${OPAL_AUTH_MASTER_TOKEN}
-      
-      
-      # Logging
       - OPAL_LOG_LEVEL=INFO
     networks:
       - opal_network_poc
