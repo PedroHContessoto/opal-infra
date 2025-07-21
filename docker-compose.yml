@@ -84,12 +84,10 @@ services:
     environment:
       - OPAL_SCOPES=1
       - OPAL_BROADCAST_URI=redis://opal-redis:6379/0
-      - OPAL_REDIS_URL=redis://opal-redis:6379/0
-      - OPAL_DB_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
+      - OPAL_STORE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
       - OPAL_AUTH_PRIVATE_KEY=${OPAL_AUTH_PRIVATE_KEY}
       - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
       - OPAL_AUTH_MASTER_TOKEN=${OPAL_AUTH_MASTER_TOKEN}
-      - OPAL_LOG_LEVEL=DEBUG
     networks:
       - opal_network_poc
     restart: unless-stopped
