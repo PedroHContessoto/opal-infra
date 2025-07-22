@@ -48,7 +48,7 @@ services:
       - opal_network_poc
     # Adicionado um healthcheck simples para o postgres também, por boa prática.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d gitea"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d opal"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,6 +84,7 @@ services:
     environment:
       - OPAL_SCOPES=1
       - OPAL_BROADCAST_URI=redis://opal-redis:6379/0
+      - OPAL_REDIS_URL=redis://opal-redis:6379/0
       - OPAL_STORE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@opal-postgres:5432/opal
       - OPAL_AUTH_PRIVATE_KEY=${OPAL_AUTH_PRIVATE_KEY}
       - OPAL_AUTH_PUBLIC_KEY=${OPAL_AUTH_PUBLIC_KEY}
